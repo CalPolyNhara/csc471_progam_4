@@ -71,6 +71,9 @@ public:
 	//example data that might be useful when trying to compute bounds on multi-shape
 	glm::vec3 dinoMin = (glm::vec3)FLT_MAX;
 	glm::vec3 dinoMax = (glm::vec3)FLT_MAX;
+	glm::vec3 eye = glm::vec3(5.0f,5.0f,-5.0f);
+	glm::vec3 up = glm::vec3(0.0f,1.0f,0.0f);
+	glm::vec3 look_here = glm::vec3(5.0f,2.0f,5.0f);
 
 	//animation data
 	float sTheta = 0;
@@ -80,6 +83,13 @@ public:
 	float yTrans = 0;
 	float yTheta = 0;
 	float xTrans = 0;
+
+	double saved_x = 0;
+	double saved_y = 0;
+
+	float pitch = glm::radians(0.0f);
+	float yaw = glm::radians(0.0f);
+
 	int flag = 0;
 
 	float cameraX = 0.0f;
@@ -100,6 +110,7 @@ public:
         switch (key)
         {
         case GLFW_KEY_A:
+
             cameraX -= moveSpeed * right.x; // Move left along the camera's right vector
             cameraY -= moveSpeed * right.y; // Move left along the camera's right vector
             cameraZ -= moveSpeed * right.z; // Move left along the camera's right vector
@@ -129,40 +140,16 @@ public:
 		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
-		if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-			// while(action != GLFW_RELEASE)
-			// {
-				yTrans -= 1;
-			//}
-		}
-		if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-			// while(action != GLFW_RELEASE)
-			// {
-				yTrans += 1;
-			//}
-		}
-		if (key == GLFW_KEY_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-			// while(action != GLFW_RELEASE)
-			// {
-				xTrans -= 1;
-			//}
-		}
-		if (key == GLFW_KEY_LEFT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
 			// while(action != GLFW_RELEASE)
 			// {
 				xTrans += 1;
 			//}
 		}
-		if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-			// while(action != GLFW_RELEASE)
-			// {
-				yTheta -= 1;
-			//}
-		}
 		if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
 			// while(action != GLFW_RELEASE)
 			// {
-				yTheta += 1;
+				xTrans -= 1;
 			// }
 		}
 		if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
@@ -206,6 +193,36 @@ public:
 			 glfwGetCursorPos(window, &posX, &posY);
 			 cout << "Pos X " << posX <<  " Pos Y " << posY << endl;
 		}
+	}
+
+	void mouse_pos_Callback(GLFWwindow *window, double x_pos, double y_pos)
+	{
+		cout << "X pos: " << x_pos << " Y pos: " << y_pos << endl;
+		double off_x = x_pos - saved_x;
+		double off_y = saved_y - y_pos;
+		saved_x = x_pos;
+		saved_y = y_pos;
+
+		float sensitivity = 0.1f;
+		off_x *= sensitivity;
+		off_y *= sensitivity;
+
+		yaw += glm::radians(off_x);
+		pitch += glm::radians(off_y);
+
+		pitch = glm::clamp(pitch, glm::radians(-80.0f), glm::radians(80.0f));
+
+		glm::vec3 look_at_pos;
+		look_at_pos.x = glm::cos(yaw) * glm::cos(pitch);
+		look_at_pos.y = glm::sin(pitch);
+		look_at_pos.z = glm::sin(yaw) * glm::cos(pitch);
+
+		glm::vec3 w = glm::normalize(look_at_pos);
+		glm::vec3 u = glm::normalize(glm::cross(vec3(0,1,0), w));
+		glm::vec3 v = glm::cross(w,u);
+
+		look_here = w + eye;
+		cout << "x: " << look_at_pos.x << " y: " << look_at_pos.x << " z: " << look_at_pos.x << endl; 
 	}
 
 	void resizeCallback(GLFWwindow *window, int width, int height)
@@ -465,8 +482,7 @@ public:
 		View->pushMatrix();
 			View->loadIdentity();
 			View->translate(vec3(-15 +  xTrans, -20+ yTrans, -50 + zTrans));
-			View->rotate(yTheta, vec3(0, 1, 0));
-
+			View->lookAt(eye, look_here, up);
 
 
 		// Draw base Hierarchical person
