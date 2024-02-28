@@ -81,10 +81,50 @@ public:
 	float yTheta = 0;
 	float xTrans = 0;
 	int flag = 0;
+
+	float cameraX = 0.0f;
+	float cameraY = 0.0f;
+	float cameraZ = 0.0f;
+
+	float moveSpeed = 0.1f;
 	// int flip_var = 1;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
+		if (action == GLFW_PRESS || action == GLFW_REPEAT)
+    {
+        // Get the camera's direction vector
+        glm::vec3 forward = glm::normalize(glm::vec3(cameraX, cameraY, cameraZ));
+        glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0))); // Cross product with up vector to get right vector
+
+        switch (key)
+        {
+        case GLFW_KEY_A:
+            cameraX -= moveSpeed * right.x; // Move left along the camera's right vector
+            cameraY -= moveSpeed * right.y; // Move left along the camera's right vector
+            cameraZ -= moveSpeed * right.z; // Move left along the camera's right vector
+            break;
+        case GLFW_KEY_D:
+            cameraX += moveSpeed * right.x; // Move right along the camera's right vector
+            cameraY += moveSpeed * right.y; // Move right along the camera's right vector
+            cameraZ += moveSpeed * right.z; // Move right along the camera's right vector
+            break;
+        case GLFW_KEY_W:
+            cameraX += moveSpeed * forward.x; // Move forward along the camera's forward vector
+            cameraY += moveSpeed * forward.y; // Move forward along the camera's forward vector
+            cameraZ += moveSpeed * forward.z; // Move forward along the camera's forward vector
+            break;
+        case GLFW_KEY_S:
+            cameraX -= moveSpeed * forward.x; // Move backward along the camera's forward vector
+            cameraY -= moveSpeed * forward.y; // Move backward along the camera's forward vector
+            cameraZ -= moveSpeed * forward.z; // Move backward along the camera's forward vector
+            break;
+        }
+    }
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		{
+			glfwSetWindowShouldClose(window, GL_TRUE);
+		}
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
@@ -511,43 +551,50 @@ public:
 
 int main(int argc, char *argv[])
 {
-	// Where the resources are loaded from
-	std::string resourceDir = "../resources";
+    // Where the resources are loaded from
+    std::string resourceDir = "../resources";
 
-	if (argc >= 2)
-	{
-		resourceDir = argv[1];
-	}
+    if (argc >= 2)
+    {
+        resourceDir = argv[1];
+    }
 
-	Application *application = new Application();
+    Application *application = new Application();
 
-	// Your main will always include a similar set up to establish your window
-	// and GL context, etc.
+    // Your main will always include a similar set up to establish your window
+    // and GL context, etc.
 
-	WindowManager *windowManager = new WindowManager();
-	windowManager->init(640, 480);
-	windowManager->setEventCallbacks(application);
-	application->windowManager = windowManager;
+    WindowManager *windowManager = new WindowManager();
+    windowManager->init(640, 480);
+    windowManager->setEventCallbacks(application);
+    application->windowManager = windowManager;
 
-	// This is the code that will likely change program to program as you
-	// may need to initialize or set up different data and state
+    // This is the code that will likely change program to program as you
+    // may need to initialize or set up different data and state
 
-	application->init(resourceDir);
-	application->initGeom(resourceDir);
+    application->init(resourceDir);
+    application->initGeom(resourceDir);
 
-	// Loop until the user closes the window.
-	while (! glfwWindowShouldClose(windowManager->getHandle()))
-	{
-		// Render scene.
-		application->render();
+    // Loop until the user closes the window.
+    while (!glfwWindowShouldClose(windowManager->getHandle()))
+    {
+        // Handle keyboard input for camera movement
+        application->keyCallback(windowManager->getHandle(), GLFW_KEY_A, 0, glfwGetKey(windowManager->getHandle(), GLFW_KEY_A), 0);
+        application->keyCallback(windowManager->getHandle(), GLFW_KEY_D, 0, glfwGetKey(windowManager->getHandle(), GLFW_KEY_D), 0);
+        application->keyCallback(windowManager->getHandle(), GLFW_KEY_W, 0, glfwGetKey(windowManager->getHandle(), GLFW_KEY_W), 0);
+        application->keyCallback(windowManager->getHandle(), GLFW_KEY_S, 0, glfwGetKey(windowManager->getHandle(), GLFW_KEY_S), 0);
 
-		// Swap front and back buffers.
-		glfwSwapBuffers(windowManager->getHandle());
-		// Poll for and process events.
-		glfwPollEvents();
-	}
+        // Render scene.
+        application->render();
 
-	// Quit program.
-	windowManager->shutdown();
-	return 0;
+        // Swap front and back buffers.
+        glfwSwapBuffers(windowManager->getHandle());
+        // Poll for and process events.
+        glfwPollEvents();
+    }
+
+    // Quit program.
+    windowManager->shutdown();
+    return 0;
 }
+
