@@ -600,6 +600,7 @@ public:
 		// Create the matrix stacks - please leave these alone for now
 		auto Projection = make_shared<MatrixStack>();
 		auto View = make_shared<MatrixStack>();
+		auto V = make_shared<MatrixStack>();
 		auto Model = make_shared<MatrixStack>();
 
 		updateUsingCameraPath(frametime);
@@ -609,10 +610,10 @@ public:
 		Projection->perspective(45.0f, aspect, 0.01f, 150.0f);
 
 		// // View is global translation along negative z for now
-		// View->pushMatrix();
-		// 	View->loadIdentity();
-		// 	View->translate(vec3(-15 +  xTrans, -20+ yTrans, -50 + zTrans));
-		// 	View->lookAt(g_eye, g_lookAt, up);
+		V->pushMatrix();
+		V->loadIdentity();
+		V->translate(vec3(-15, 20, -5));
+		V->lookAt(g_eye, g_lookAt, up);
 
 
 		// Draw base Hierarchical person
@@ -689,7 +690,7 @@ public:
 		partProg->bind();
 		texture3->bind(partProg->getUniform("alphaTexture"));
 		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix())));
-		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix())));
+		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("V"), 1, GL_FALSE, value_ptr(V->topMatrix())));
 		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix())));
 		
 		CHECKED_GL_CALL(glUniform3f(partProg->getUniform("pColor"), 0.5, 0.5, 1.0));
@@ -703,45 +704,23 @@ public:
 		if(glfwGetTime() - count >= 1)
 		{
 			count = glfwGetTime();
-			// super_flag++;
-			// cout << "super flag " << super_flag <<endl;
-			// if(super_flag == 1)
-			// {
-				uber_flag++;
-				if(uber_flag%4 == 0)
-				{
-					thePartSystem->reSet();
-				}
-				else if(uber_flag%4 == 1)
-				{
-					thePartSystem3->reSet();
-				}
-				else if(uber_flag%4 == 2)
-				{
-					thePartSystem2->reSet();
-				}
-				else if(uber_flag%4 == 3)
-				{
-					thePartSystem4->reSet();
-				}
-			// }
-			// if(super_flag > 1)
-			// {
-			// 	if(uber_flag%2 == 1)
-			// 	{
-			// 		thePartSystem3->reSet();	
-			// 	}
-			// 	else
-			// 	{
-			// 		thePartSystem4->reSet();
-			// 	}
-			// 	super_flag = 0;	
-			// }
-			// if(super_flag == 3)
-			// {
-			// 	thePartSystem3->reSet();	
-			// 	super_flag = 0;
-			// }
+			uber_flag++;
+			if(uber_flag%4 == 0)
+			{
+				thePartSystem->reSet();
+			}
+			else if(uber_flag%4 == 1)
+			{
+				thePartSystem3->reSet();
+			}
+			else if(uber_flag%4 == 2)
+			{
+				thePartSystem2->reSet();
+			}
+			else if(uber_flag%4 == 3)
+			{
+				thePartSystem4->reSet();
+			}
 		}
 
 		// thePartSystem->drawMe(partProg);
@@ -759,7 +738,7 @@ public:
 
 		// Pop matrix stacks.
 		Projection->popMatrix();
-		//View->popMatrix();
+		V->popMatrix();
 
 	}
 };
