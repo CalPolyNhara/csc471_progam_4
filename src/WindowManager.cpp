@@ -44,10 +44,10 @@ bool WindowManager::init(int const width, int const height)
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
 	// Create a windowed mode window and its OpenGL context.
-	windowHandle = glfwCreateWindow(width, height, "pls kill me", nullptr, nullptr);
+	windowHandle = glfwCreateWindow(width, height, "My Project", nullptr, nullptr);
 	if (! windowHandle)
 	{
 		glfwTerminate();
@@ -71,8 +71,8 @@ bool WindowManager::init(int const width, int const height)
 
 	glfwSetKeyCallback(windowHandle, key_callback);
 	glfwSetMouseButtonCallback(windowHandle, mouse_callback);
-	glfwSetCursorPosCallback(windowHandle, mouse_pos_callback);
 	glfwSetFramebufferSizeCallback(windowHandle, resize_callback);
+	glfwSetScrollCallback(windowHandle, scroll_callback);
 
 	return true;
 }
@@ -109,18 +109,18 @@ void WindowManager::mouse_callback(GLFWwindow * window, int button, int action, 
 	}
 }
 
-void WindowManager::mouse_pos_callback(GLFWwindow * window, double x_pos, double y_pos)
-{
-	if (instance && instance->callbacks)
-	{
-		instance->callbacks->mouse_pos_Callback(window, x_pos, y_pos);
-	}
-}
-
 void WindowManager::resize_callback(GLFWwindow * window, int in_width, int in_height)
 {
 	if (instance && instance->callbacks)
 	{
 		instance->callbacks->resizeCallback(window, in_width, in_height);
+	}
+}
+
+void WindowManager::scroll_callback(GLFWwindow * window, double in_deltaX, double in_deltaY)
+{
+	if (instance && instance->callbacks)
+	{
+		instance->callbacks->scrollCallback(window, in_deltaX, in_deltaY);
 	}
 }

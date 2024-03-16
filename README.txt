@@ -1,9 +1,11 @@
 README
 
-the dino.obj does not have normals. 
+Here is my readme. I'm not sure what you wanted added
+to it, so I am going to do a small explanation:
 
-this file is in the resources file.
+the spline is supposed to go around and focus on the dinosasur
 
-The dino is technically a dilophosaurus.
+beyond that the mouse scrolling works 360 degrees horizontally
+and up to +- 89 degrees vertically. 
 
-This project was not fun at all. :(
+I added a skybox of a stormy sky.
