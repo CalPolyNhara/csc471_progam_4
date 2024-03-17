@@ -696,6 +696,7 @@ public:
 		CHECKED_GL_CALL(glUniform3f(partProg->getUniform("pColor"), 0.5, 0.5, 1.0));
 		
 		//thePartSystem->drawMe(partProg);
+
 		thePartSystem2->drawMe(partProg);	
 		thePartSystem3->drawMe(partProg);
 		thePartSystem->drawMe(partProg);
@@ -729,6 +730,7 @@ public:
 		thePartSystem3->update();
 		thePartSystem4->update();
 
+		V->popMatrix();
 		partProg->unbind();
 
 		
@@ -737,8 +739,8 @@ public:
 		sTheta = 30.0f*sin(2.0*M_PI * glfwGetTime());
 
 		// Pop matrix stacks.
+		
 		Projection->popMatrix();
-		V->popMatrix();
 
 	}
 };
