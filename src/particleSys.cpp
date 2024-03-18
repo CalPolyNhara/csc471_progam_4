@@ -11,8 +11,14 @@ using namespace std;
 particleSys::particleSys(vec3 source) {
 
 	numP = 200;	
+  particlePool.reserve(numP); // Reserve space for particle pool
+    // Initialize particle pool
+  for (int i = 0; i < numP; ++i) 
+  {
+      particlePool.push_back(make_shared<Particle>(source));
+  }
 	t = 0.0f; //time
-	h = 0.01f; //step
+	h = 0.5f; //step
 	g = vec3(0.0f, -0.4, 0.0f); //gravity
 	start = source;
 	theCamera = glm::mat4(1.0);
@@ -78,11 +84,14 @@ void particleSys::update() {
   vec4 col;
 
   //update the particles
-  for(auto particle : particles) {
+ for (auto particle : particles) {
         particle->update(t, h, g, start);
-  }
-  t += 1.1*h;
- 
+        if (t > particle->getEndTime()) { // Use getter function to access tEnd
+            // Particle has reached the end of its lifespan, recycle it
+            particle->rebirth(t, start);
+        }
+    }
+    t += 1.1 * h;
   // Sort the particles by Z
   //temp->rotate(camRot, vec3(0, 1, 0));
   //be sure that camera matrix is updated prior to this update

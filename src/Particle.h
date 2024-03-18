@@ -33,6 +33,9 @@ public:
 	const vec3 &getPosition() const { return x; };
 	const vec3 &getVelocity() const { return v; };
 	const vec4 &getColor() const { return color; };
+	float getEndTime() const {
+        return tEnd;
+    }
 	
 private:
 	float charge; // +1 or -1

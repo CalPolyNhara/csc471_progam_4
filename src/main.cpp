@@ -51,7 +51,8 @@ public:
 	particleSys *thePartSystem2;
 	particleSys *thePartSystem3;
 	particleSys *thePartSystem4;
-
+	particleSys *thePartSystem5;
+	particleSys *thePartSystem6;
 
 	//another color prog
 
@@ -75,6 +76,8 @@ public:
 	shared_ptr<Texture> texture2;
 
 	shared_ptr<Texture> texture3;
+
+	shared_ptr<Texture> texture4;
 
 
 //global data for ground plane - direct load constant defined CPU data to GPU (not obj)
@@ -286,7 +289,7 @@ public:
 		vec3 v = normalize(cross(w,u));
 
 		g_lookAt = look_at_pos + g_eye;
-		cout << "x: " << look_at_pos.x << " y: " << look_at_pos.x << " z: " << look_at_pos.x << endl;
+		//cout << "x: " << look_at_pos.x << " y: " << look_at_pos.x << " z: " << look_at_pos.x << endl;
 		saved_x = x_pos;
 		saved_y = y_pos;
 	}
@@ -391,17 +394,27 @@ public:
   		texture3->setUnit(0);
   		texture3->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
+		texture4 = make_shared<Texture>();
+		texture4->setFilename(resourceDirectory + "/line.png");
+		texture4->init();
+		texture4->setUnit(0);
+		texture4->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+
 		splinepath[0] = Spline(glm::vec3(-20,20,5), glm::vec3(30, 20,-10), glm::vec3(30, 20, 5), glm::vec3(35,20,5), 5);
 		splinepath[1] = Spline(glm::vec3(35,20,5), glm::vec3(25,0,0), glm::vec3(20, 0, 0), glm::vec3(15,20,25), 3); 
 
-		thePartSystem = new particleSys(vec3(0, 5, -6));
-		thePartSystem2 = new particleSys(vec3(0, 5, -7));
-		thePartSystem3 = new particleSys(vec3(0, 5, -4));
-		thePartSystem4 = new particleSys(vec3(0, 5, -3));
+		thePartSystem = new particleSys(vec3(60, 70, -50));
+		thePartSystem2 = new particleSys(vec3(30, 70, -20));
+		thePartSystem3 = new particleSys(vec3(0, 70, 10));
+		thePartSystem4 = new particleSys(vec3(-30, 70, 40));
+		thePartSystem5 = new particleSys(vec3(30, 70, 30));
+		thePartSystem6 = new particleSys(vec3(-20, 70, -30));
 		thePartSystem3->gpuSetup();
 		thePartSystem->gpuSetup();
 		thePartSystem2->gpuSetup();
 		thePartSystem4->gpuSetup();
+		thePartSystem5->gpuSetup();
+		thePartSystem6->gpuSetup();
 	}
 
 	void initGeom(const std::string& resourceDirectory)
@@ -688,7 +701,7 @@ public:
 		texProg->unbind();
 
 		partProg->bind();
-		texture3->bind(partProg->getUniform("alphaTexture"));
+		texture4->bind(partProg->getUniform("alphaTexture"));
 		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix())));
 		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("V"), 1, GL_FALSE, value_ptr(V->topMatrix())));
 		CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix())));
@@ -696,39 +709,24 @@ public:
 		CHECKED_GL_CALL(glUniform3f(partProg->getUniform("pColor"), 0.5, 0.5, 1.0));
 		
 		//thePartSystem->drawMe(partProg);
-
+		CHECKED_GL_CALL(glEnable(GL_DEPTH_TEST));
+		CHECKED_GL_CALL(glEnable(GL_BLEND));
+		//CHECKED_GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+		CHECKED_GL_CALL(glPointSize(15.0f));
+		
 		thePartSystem2->drawMe(partProg);	
 		thePartSystem3->drawMe(partProg);
 		thePartSystem->drawMe(partProg);
 		thePartSystem4->drawMe(partProg);
+		thePartSystem5->drawMe(partProg);
+		thePartSystem6->drawMe(partProg);
 
-		if(glfwGetTime() - count >= 1)
-		{
-			count = glfwGetTime();
-			uber_flag++;
-			if(uber_flag%4 == 0)
-			{
-				thePartSystem->reSet();
-			}
-			else if(uber_flag%4 == 1)
-			{
-				thePartSystem3->reSet();
-			}
-			else if(uber_flag%4 == 2)
-			{
-				thePartSystem2->reSet();
-			}
-			else if(uber_flag%4 == 3)
-			{
-				thePartSystem4->reSet();
-			}
-		}
-
-		// thePartSystem->drawMe(partProg);
 		thePartSystem->update();
 		thePartSystem2->update();
 		thePartSystem3->update();
 		thePartSystem4->update();
+		thePartSystem5->update();
+		thePartSystem6->update();
 
 		V->popMatrix();
 		partProg->unbind();

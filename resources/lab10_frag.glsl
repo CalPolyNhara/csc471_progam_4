@@ -1,15 +1,15 @@
 #version 330 core
 
-uniform sampler2D alphaTexture;
+uniform sampler2D alphaTexture; // Texture containing alpha values
 
-in vec3 partCol;
-
+in vec3 partCol; // Particle color
 out vec4 outColor;
-
 
 void main()
 {
-	float alpha = texture(alphaTexture, gl_PointCoord).r;
+    // Sample the alpha texture at the coordinate of the particle
+    float alpha = texture(alphaTexture, gl_PointCoord).r;
 
-	outColor = vec4(partCol, alpha);
+    // Output color with the sampled alpha
+    outColor = vec4(partCol, alpha);
 }

@@ -29,6 +29,7 @@ public:
 class particleSys {
 private:
 	vector<shared_ptr<Particle>> particles;
+	vector<shared_ptr<Particle>> particlePool; // Particle pool for recycling
 	float t, h; //t s time and h is trace
 	vec3 g; //gravity
 	int numP;
