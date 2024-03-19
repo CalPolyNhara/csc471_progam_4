@@ -21,6 +21,9 @@
 #include "particleSys.h"
 #include "Particle.h"
 
+#include <cstdlib> // For random number generation
+#include <ctime>   // For seeding random number generator
+
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader/tiny_obj_loader.h>
 #define PI 3.1415927
@@ -42,6 +45,8 @@ public:
 	// Our shader program
 	std::shared_ptr<Program> prog;
 	std::shared_ptr<Program> partProg;
+	std::shared_ptr<Program> texProg;
+
 
 
 	// Our shader program
@@ -63,8 +68,8 @@ public:
 	vector<shared_ptr<Shape>> cube;
 	vector<shared_ptr<Shape>> sky_box;
 	vector<shared_ptr<Shape>> cloud;
-
-	std::shared_ptr<Program> texProg;
+	vector<shared_ptr<Shape>> road;
+	vector<shared_ptr<Shape>> rock;
 
 	//a different mesh
 	vector<shared_ptr<Shape>> jeep;
@@ -78,6 +83,10 @@ public:
 	shared_ptr<Texture> texture3;
 
 	shared_ptr<Texture> texture4;
+
+	shared_ptr<Texture> texture5;
+
+	shared_ptr<Texture> texture6;
 
 
 //global data for ground plane - direct load constant defined CPU data to GPU (not obj)
@@ -94,10 +103,10 @@ public:
 	glm::vec3 dinoMax = (glm::vec3)FLT_MAX;
 
 	//double g_phi, g_theta;
-	vec3 view = vec3(0, 0, 1);
+	vec3 view = vec3(10, 20, 5);
 	vec3 strafe = vec3(1, 0, 0);
-	vec3 g_eye = vec3(0, 1, 0);
-	vec3 g_lookAt = vec3(0, 1, 4);
+	vec3 g_eye = vec3(20, 20, 40);
+	vec3 g_lookAt = vec3(0, 1, -10);
 	vec3 up = vec3(0,1,0);
 
 	Spline splinepath[2];
@@ -111,10 +120,12 @@ public:
 	float yTrans = 0;
 	float yTheta = 0;
 	float xTrans = 0;
+	float x_move = 0;
 
 	double saved_x = 0;
 	double saved_y = 0;
 	double count = glfwGetTime();
+	double lastUpdateTime = 0.0;
 
 	double pitch = 0;
 	double yaw = 0;
@@ -355,8 +366,6 @@ public:
 		texProg->addUniform("M");
 		// texProg->addUniform("flip");
 		texProg->addUniform("Texture0");
-		texProg->addUniform("Texture1");
-		texProg->addUniform("Texture2");
 		// texProg->addUniform("MatShine");
 		// texProg->addUniform("MatAmb");
 		// texProg->addUniform("MatDif");
@@ -379,26 +388,40 @@ public:
 		texture1 = make_shared<Texture>();
   		texture1->setFilename(resourceDirectory + "/Cube_gloss.jpg");
   		texture1->init();
-  		texture1->setUnit(0);
+  		texture1->setUnit(1);
   		texture1->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
 		texture2 = make_shared<Texture>();
   		texture2->setFilename(resourceDirectory + "/dark_background.jpeg");
   		texture2->init();
-  		texture2->setUnit(0);
+  		texture2->setUnit(2);
   		texture2->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
 		texture3 = make_shared<Texture>();
   		texture3->setFilename(resourceDirectory + "/cloud_sky.jpg");
   		texture3->init();
-  		texture3->setUnit(0);
+  		texture3->setUnit(3);
   		texture3->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
 		texture4 = make_shared<Texture>();
 		texture4->setFilename(resourceDirectory + "/line.png");
 		texture4->init();
-		texture4->setUnit(0);
+		texture4->setUnit(4);
 		texture4->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+		
+		texture5 = make_shared<Texture>();
+		texture5->setFilename(resourceDirectory + "/diff_dino.jpg");
+		texture5->init();
+		texture5->setUnit(4);
+		texture5->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+
+		texture6 = make_shared<Texture>();
+		texture6->setFilename(resourceDirectory + "/camo.jpg");
+		texture6->init();
+		texture6->setUnit(5);
+		texture6->setWrapModes(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+
+		
 
 		splinepath[0] = Spline(glm::vec3(-20,20,5), glm::vec3(30, 20,-10), glm::vec3(30, 20, 5), glm::vec3(35,20,5), 5);
 		splinepath[1] = Spline(glm::vec3(35,20,5), glm::vec3(25,0,0), glm::vec3(20, 0, 0), glm::vec3(15,20,25), 3); 
@@ -436,8 +459,8 @@ public:
 			//for now all our shapes will not have textures - change in later labs
 			for (auto shape:TOshapes)
 			{
-				auto shape_obj = make_shared<Shape>(false);
-				shape_obj->createShape(TOshapes[0]);
+				auto shape_obj = make_shared<Shape>(true);
+				shape_obj->createShape(shape);
 				shape_obj->measure();
 				shape_obj->normalize_v();
 				shape_obj->init();
@@ -447,7 +470,7 @@ public:
     			dinoMax = glm::max(dinoMax, shape_obj->max);
 			}
 		}
-		cout << "Dino has " << TOshapes.size() << " shapes" << endl;
+		//cout << "Dino has " << TOshapes.size() << " shapes" << endl;
 
 		//load in another mesh and make the shape(s)
 		vector<tinyobj::shape_t> TOshapes2;
@@ -466,7 +489,24 @@ public:
 				background.push_back(shape_obj); //saving shape_obj into the vector of backgrounds
 			}
 		}
-		cout << "Background has " << TOshapes2.size() << " shapes" << endl;
+
+		vector<tinyobj::shape_t> TOshapes7;
+ 		rc = tinyobj::LoadObj(TOshapes7, objMaterials, errStr, (resourceDirectory + "/Rock1.obj").c_str());
+		
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			//for now all our shapes will not have textures - change in later labs
+			for (auto shape:TOshapes7)
+			{
+				auto shape_obj = make_shared<Shape>(false);
+				shape_obj->createShape(shape);
+				shape_obj->measure();
+				shape_obj->init();
+				rock.push_back(shape_obj); //saving shape_obj into the vector of backgrounds
+			}
+		}
+		//cout << "Background has " << TOshapes2.size() << " shapes" << endl;
 
 
 		//read out information stored in the shape about its size - something like this...
@@ -483,8 +523,8 @@ public:
 			//for now all our shapes will not have textures - change in later labs
 			for (auto shape:TOshapes3)
 			{
-				auto shape_obj = make_shared<Shape>(false);
-				shape_obj->createShape(TOshapes3[0]);
+				auto shape_obj = make_shared<Shape>(true);
+				shape_obj->createShape(shape);
 				shape_obj->measure();
 				shape_obj->normalize_v();
 				shape_obj->init();
@@ -494,7 +534,7 @@ public:
     			// dinoMax = glm::max(dinoMax, shape_obj->max);
 			}
 		}
-		cout << "jeep has " << TOshapes3.size() << " shapes" << endl;
+		//cout << "jeep has " << TOshapes3.size() << " shapes" << endl;
 
 	
 	vector<tinyobj::shape_t> TOshapes4;
@@ -506,7 +546,7 @@ public:
 		for (auto shape:TOshapes4)
 		{
 			auto shape_obj = make_shared<Shape>(true); //TRUE MEANS IT IS A TEXTURE. THIS WAS NOT CLEARLY UNDERSTOOD AT ALL
-			shape_obj->createShape(TOshapes4[0]);
+			shape_obj->createShape(shape);
 			shape_obj->measure();
 			shape_obj->normalize_v();
 			shape_obj->init();
@@ -523,15 +563,33 @@ public:
 			for (auto shape:TOshapes5)
 			{
 				auto shape_obj = make_shared<Shape>(true); //TRUE MEANS IT IS A TEXTURE. THIS WAS NOT CLEARLY UNDERSTOOD AT ALL
-				shape_obj->createShape(TOshapes5[0]);
+				shape_obj->createShape(shape);
 				shape_obj->measure();
 				shape_obj->normalize_v();
 				shape_obj->init();
 				sky_box.push_back(shape_obj);
 			}
 		}
+	vector<tinyobj::shape_t> TOshapes6;
+ 		rc = tinyobj::LoadObj(TOshapes6, objMaterials, errStr, (resourceDirectory + "/road.obj").c_str());
+		
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			//for now all our shapes will not have textures - change in later labs
+			for (auto shape:TOshapes6)
+			{
+				auto shape_obj = make_shared<Shape>(false);
+				shape_obj->createShape(shape);
+				shape_obj->measure();
+				shape_obj->init();
+				road.push_back(shape_obj); //saving shape_obj into the vector of backgrounds
+			}
+		}
 
 	}
+
+	
 	
 
 	void SetMaterial(shared_ptr<Program> curS, int i) 
@@ -560,6 +618,12 @@ public:
 				glUniform3f(curS->getUniform("MatSpec"), 0.3, 0.3, 0.3);
 				glUniform1f(curS->getUniform("MatShine"), 70.0);	
 			break;
+			case 4: //
+				glUniform3f(curS->getUniform("MatAmb"), 1.0, 1.0, 1.0);
+				glUniform3f(curS->getUniform("MatDif"), 1.0, 1.0, 1.0);
+				glUniform3f(curS->getUniform("MatSpec"), 1.0, 1.0, 1.0);
+				glUniform1f(curS->getUniform("MatShine"), 70.0);	
+			break;
 		}
 	}
 
@@ -583,6 +647,38 @@ public:
 	void SetView(shared_ptr<Program>  shader) {
   		glm::mat4 Cam = glm::lookAt(g_eye, g_lookAt, up);
   		glUniformMatrix4fv(shader->getUniform("V"), 1, GL_FALSE, value_ptr(Cam));
+	}
+
+	
+	void perturbPoint(float& x, float& y, float& z, float magnitude) 
+	{
+		// Perturb the point by a random amount within the given magnitude
+		x += (static_cast<float>(rand()) / RAND_MAX - 0.5f) * magnitude;
+		y += (static_cast<float>(rand()) / RAND_MAX - 0.5f) * magnitude;
+		z += (static_cast<float>(rand()) / RAND_MAX - 0.5f) * magnitude;
+	}
+
+
+	void drawLightning(float x1, float y1, float z1, float x2, float y2, float z2, int iterations) 
+	{
+		if (iterations <= 0) {
+			// Base case: draw a line segment
+			glBegin(GL_LINES);
+			glVertex3f(x1, y1, z1);
+			glVertex3f(x2, y2, z2);
+			glEnd();
+		} else {
+			float mx = (x1 + x2) / 2.0f;
+			float my = (y1 + y2) / 2.0f;
+			float mz = (z1 + z2) / 2.0f;
+
+			// Perturb the midpoint
+			float perturbationMagnitude = (x2 - x1 + y2 - y1 + z2 - z1) / 3.0f;
+			perturbPoint(mx, my, mz, perturbationMagnitude);
+
+			drawLightning(x1, y1, z1, mx, my, mz, iterations - 1);
+			drawLightning(mx, my, mz, x2, y2, z2, iterations - 1);
+		}
 	}
 
 	void updateUsingCameraPath(float frametime)  {
@@ -622,12 +718,12 @@ public:
 		Projection->pushMatrix();
 		Projection->perspective(45.0f, aspect, 0.01f, 150.0f);
 
-		// // View is global translation along negative z for now
+		// // View is global view for the particles
 		V->pushMatrix();
 		V->loadIdentity();
-		V->translate(vec3(-15, 20, -5));
+		V->translate(vec3(-35, 20, -45));
 		V->lookAt(g_eye, g_lookAt, up);
-
+	
 
 		// Draw base Hierarchical person
 		prog->bind();
@@ -636,13 +732,8 @@ public:
 		SetView(prog);
 		glUniform3f(prog->getUniform("lightPos"), 5.0, 13.0, 4.0);
 
-		setModel(prog, vec3(5, -2.0, 0), 0, 0, 0.4);
-		SetMaterial(prog,1);
-		for (auto shapes:dino)
-		{
-			shapes->draw(prog);
-		}
-
+		// glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix()));
+		//SetView(prog);
 		//use helper function that uses glm to create some transform matrices
 		setModel(prog, vec3(-1.7, -1.7, 0), 0, 0, 0.5);
 		SetMaterial(prog,0);
@@ -651,19 +742,72 @@ public:
 			shapes->draw(prog);
 		}
 
-		Model->pushMatrix();
-			Model->translate(vec3(sTheta,0,0));
-			Model->translate(vec3(50.0, 3.0, 10.0));
-			Model->rotate(M_PI/180 * 230, vec3(0.0,1.0,0.0));
-			Model->scale(.1);
-			SetMaterial(prog,2);
-			setModel(prog, Model);
-				for (auto shapes:jeep)
-				{
 
-					shapes->draw(prog);
-				}
-		Model->popMatrix();
+		setModel(prog, vec3(10, -6, 13), 0, 0, 4.0f);
+		SetMaterial(prog,1);
+		for (auto shapes:road)
+		{
+			shapes->draw(prog);
+		}
+
+		setModel(prog, vec3(0, -5, 0), 0, 0, 1.0f);
+		SetMaterial(prog, 4);
+		for (auto shapes:rock)
+		{
+			shapes->draw(prog);
+		}
+
+		//LIGHTNING STUFF HERE
+		Model->pushMatrix();  // Save the current model matrix
+		Model->loadIdentity();  // Reset model matrix to identity
+		//setModel(prog, 2);
+		glLineWidth(7.0f);
+		float startX1 = -30.0f;
+		float startY1 = 0.0f;
+		float startZ1 = 20.0f;
+		float endX1 = -10.0f;
+		float endY1 = 70.0f;
+		float endZ1 = -70.0f;
+
+		float startX2 = 0.0f;
+		float startY2 = 0.0f;
+		float startZ2 = 0.0f;
+		float endX2 = 10.0f;
+		float endY2 = 70.0f;
+		float endZ2 = -40.0f;
+
+		float startX3 = -5.0f;
+		float startY3 = 0.0f;
+		float startZ3 = 50.0f;
+		float endX3 = 40.0f;
+		float endY3 = 70.0f;
+		float endZ3 = 10.0f;
+
+		float startX4 = -25.0f;
+		float startY4 = 0.0f;
+		float startZ4 = -50.0f;
+		float endX4 = 10.0f;
+		float endY4 = 70.0f;
+		float endZ4 = -60.0f;
+
+		//drawLightning(startX1, startY1, startZ1, endX1, endY1, endZ1, 4);
+		double currentTime = glfwGetTime();
+		if (currentTime - lastUpdateTime >= 2.0) {
+			lastUpdateTime = currentTime;
+			uber_flag++;
+		}
+		if (uber_flag == 0) {
+			drawLightning(startX2, startY2, startZ2, endX2, endY2, endZ2, 3);
+		} else if (uber_flag == 1) {
+			drawLightning(startX3, startY3, startZ3, endX3, endY3, endZ3, 4);
+		} else if (uber_flag == 2) {
+			drawLightning(startX4, startY4, startZ4, endX4, endY4, endZ4, 5);
+		}
+		if(uber_flag == 3)
+		{
+			uber_flag = 0;
+		}
+		Model->popMatrix();  // Restore the previous model matrix
 
 		prog->unbind();
 
@@ -674,6 +818,16 @@ public:
 		//glUniformMatrix4fv(texProg->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
 		SetView(texProg);
 		glUniformMatrix4fv(texProg->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+
+				
+		setModel(texProg, vec3(-10, -2.0, -40), 0, 0, 1.0);
+		//SetMaterial(texProg,1);
+		texture5->bind(texProg->getUniform("Texture0"));
+		for (auto shapes:dino)
+		{
+			shapes->draw(texProg);
+		}
+
 		setModel(texProg, vec3(0, -5.0, 50), 0, 0, 0.1);
 		// glUniform1i(texProg->getUniform("flip"), flip_var);
 		if(flag == 0)
@@ -682,7 +836,7 @@ public:
 		}
 		if(flag == 1) //COME BAKC
 		{
-			texture1->bind(texProg->getUniform("Texture1"));
+			texture1->bind(texProg->getUniform("Texture0"));
 		}
 		for (auto shapes:cube)
 		{
@@ -691,11 +845,27 @@ public:
 
 		setModel(texProg, vec3(1,0,0),0,0,80);
 		// glUniform1i(texProg->getUniform("flip"), flip_var);
-		texture2->bind(texProg->getUniform("Texture2"));	
+		texture2->bind(texProg->getUniform("Texture0"));	
 		for (auto shapes:sky_box)
 		{
 			shapes->draw(texProg);
 		}
+
+
+		Model->pushMatrix();
+			Model->translate(vec3(x_move,0,0));
+			Model->translate(vec3(50.0, 3.0, 10.0));
+			Model->rotate(M_PI/180 * 230, vec3(0.0,1.0,0.0));
+			Model->scale(0.1f);
+			//SetMaterial(prog,2);
+			texture6->bind(texProg->getUniform("Texture0"));
+			setModel(texProg, Model);
+			for (auto shapes:jeep)
+			{
+				shapes->draw(texProg);
+			}
+		Model->popMatrix();
+		
 
 
 		texProg->unbind();
@@ -712,7 +882,7 @@ public:
 		CHECKED_GL_CALL(glEnable(GL_DEPTH_TEST));
 		CHECKED_GL_CALL(glEnable(GL_BLEND));
 		//CHECKED_GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-		CHECKED_GL_CALL(glPointSize(15.0f));
+		CHECKED_GL_CALL(glPointSize(8.0f));
 		
 		thePartSystem2->drawMe(partProg);	
 		thePartSystem3->drawMe(partProg);
@@ -734,7 +904,12 @@ public:
 		
 
 		//animation update example
-		sTheta = 30.0f*sin(2.0*M_PI * glfwGetTime());
+		sTheta = 125.0f*sin(2.0*M_PI * glfwGetTime());
+		x_move -= 1.0f;
+		if(x_move <= -160)
+		{
+			x_move = 0;
+		}
 
 		// Pop matrix stacks.
 		
@@ -771,10 +946,21 @@ int main(int argc, char *argv[])
 
 	//added from project 4 base code
 	auto lastTime = chrono::high_resolution_clock::now();
+	// GLfloat line_vertical[] =
+	// 	{
+	// 		200, 100, 0,
+	// 		100, 300, 0
+	// 	};
 
     // Loop until the user closes the window.
     while (!glfwWindowShouldClose(windowManager->getHandle()))
     {
+
+		// glClear(GL_COLOR_BUFFER_BIT);
+		// glEnableClientState(GL_VERTEX_ARRAY);
+		// glVertexPointer(3, GL_FLOAT, 0, line_vertical);
+		// glDrawArrays(GL_LINES, 0 , 2);
+		// glDisableClientState(GL_VERTEX_ARRAY);
         auto nextLastTime = chrono::high_resolution_clock::now();
 
 		// get time since last frame

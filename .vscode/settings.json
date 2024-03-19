@@ -1,5 +1,24 @@
 {
     "files.associations": {
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "charconv": "cpp",
+        "chrono": "cpp",
+        "compare": "cpp",
+        "cstddef": "cpp",
+        "cstdlib": "cpp",
+        "cwchar": "cpp",
+        "fstream": "cpp",
+        "numeric": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "cstdio": "cpp",
+        "*.tcc": "cpp",
+        "format": "cpp",
+        "istream": "cpp",
+        "sstream": "cpp",
+        "streambuf": "cpp",
+        "functional": "cpp",
+        "variant": "cpp"
     }
 }

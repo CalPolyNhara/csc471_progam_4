@@ -61,6 +61,9 @@ void Particle::rebirth(float t, vec3 start) {
 
 void Particle::update(float t, float h, const vec3 &g, const vec3 start)
 {
+	if(t > (tEnd/2)) {
+		;
+	}
 	if(t > tEnd) {
 		rebirth(t, start);
 	}
