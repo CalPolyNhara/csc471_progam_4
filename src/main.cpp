@@ -70,6 +70,7 @@ public:
 	vector<shared_ptr<Shape>> cloud;
 	vector<shared_ptr<Shape>> road;
 	vector<shared_ptr<Shape>> rock;
+	vector<shared_ptr<Shape>> wall;
 
 	//a different mesh
 	vector<shared_ptr<Shape>> jeep;
@@ -506,7 +507,23 @@ public:
 				rock.push_back(shape_obj); //saving shape_obj into the vector of backgrounds
 			}
 		}
-		//cout << "Background has " << TOshapes2.size() << " shapes" << endl;
+		
+		vector<tinyobj::shape_t> TOshapes8;
+ 		rc = tinyobj::LoadObj(TOshapes8, objMaterials, errStr, (resourceDirectory + "/wall.obj").c_str());
+		
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			//for now all our shapes will not have textures - change in later labs
+			for (auto shape:TOshapes8)
+			{
+				auto shape_obj = make_shared<Shape>(false);
+				shape_obj->createShape(shape);
+				shape_obj->measure();
+				shape_obj->init();
+				wall.push_back(shape_obj); //saving shape_obj into the vector of backgrounds
+			}
+		}
 
 
 		//read out information stored in the shape about its size - something like this...
@@ -746,6 +763,20 @@ public:
 		setModel(prog, vec3(10, -6, 13), 0, 0, 4.0f);
 		SetMaterial(prog,1);
 		for (auto shapes:road)
+		{
+			shapes->draw(prog);
+		}
+		
+		setModel(prog, vec3(-60, 0, -10), 0, 0, 2.0f);
+		SetMaterial(prog,1);
+		for (auto shapes:wall)
+		{
+			shapes->draw(prog);
+		}
+
+		setModel(prog, vec3(60, 0, -10), 0, 0, 2.0f);
+		SetMaterial(prog,1);
+		for (auto shapes:wall)
 		{
 			shapes->draw(prog);
 		}
